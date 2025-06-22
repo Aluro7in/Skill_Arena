@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Star, Gamepad2, Trophy, Target, Timer } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Star, Gamepad2, Trophy, Target, Timer, Loader } from 'lucide-react';
+import { supabaseService } from '../services/supabase';
 
 interface AuthPageProps {
   onLogin: (user: { name: string; email: string }) => void;
@@ -17,6 +18,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Check trial session
@@ -34,15 +37,48 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
+    setMessage(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      onLogin({
-        name: formData.name || 'Alex Chen',
-        email: formData.email || 'alex@example.com'
-      });
+    try {
+      if (isLogin) {
+        const { user } = await supabaseService.signIn(formData.email, formData.password);
+        if (user) {
+          onLogin({
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+            email: user.email || ''
+          });
+        }
+      } else {
+        if (formData.password !== formData.confirmPassword) {
+          throw new Error('Passwords do not match');
+        }
+        
+        const { user } = await supabaseService.signUp(
+          formData.email, 
+          formData.password, 
+          formData.name
+        );
+        
+        if (user) {
+          if (user.email_confirmed_at) {
+            // User is immediately confirmed
+            onLogin({
+              name: formData.name || user.email?.split('@')[0] || 'User',
+              email: user.email || ''
+            });
+          } else {
+            // Email confirmation required (though we've disabled it)
+            setMessage('Account created successfully! You can now sign in.');
+            setIsLogin(true);
+          }
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleTrialAccess = () => {
@@ -173,6 +209,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   </p>
                 </div>
 
+                {/* Error/Success Messages */}
+                {error && (
+                  <div className="mb-6 bg-red-600/20 border border-red-500/30 rounded-xl p-4">
+                    <p className="text-red-300 text-sm">{error}</p>
+                  </div>
+                )}
+
+                {message && (
+                  <div className="mb-6 bg-green-600/20 border border-green-500/30 rounded-xl p-4">
+                    <p className="text-green-300 text-sm">{message}</p>
+                  </div>
+                )}
+
                 {/* Trial Option */}
                 {canUseTrial && (
                   <div className="mb-6 bg-gradient-to-r from-orange-600/20 to-yellow-600/20 backdrop-blur-sm border border-orange-500/20 rounded-2xl p-4">
@@ -288,7 +337,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <Loader className="w-5 h-5 animate-spin" />
                         <span>{isLogin ? 'Signing In...' : 'Creating Account...'}</span>
                       </div>
                     ) : (
@@ -301,7 +350,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   <p className="text-gray-400">
                     {isLogin ? "Don't have an account?" : "Already have an account?"}
                     <button
-                      onClick={() => setIsLogin(!isLogin)}
+                      onClick={() => {
+                        setIsLogin(!isLogin);
+                        setError(null);
+                        setMessage(null);
+                      }}
                       className="ml-2 text-purple-400 hover:text-purple-300 font-semibold transition-colors"
                     >
                       {isLogin ? 'Sign Up' : 'Sign In'}

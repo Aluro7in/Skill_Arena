@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Crown, Zap, Star, Trophy, Target, Users, BookOpen, Award, CheckCircle, X, Sparkles, TrendingUp, Shield, Headphones, CreditCard, Loader } from 'lucide-react';
 import { stripeService } from '../services/stripe';
+import { stripeProducts } from '../stripe-config';
 
 interface UpgradePlan {
   id: string;
@@ -13,8 +14,7 @@ interface UpgradePlan {
   badge: string;
   color: string;
   icon: React.ComponentType<any>;
-  stripeProductId: string;
-  stripePriceId: string;
+  priceId: string;
 }
 
 const StudentUpgrade: React.FC = () => {
@@ -23,19 +23,21 @@ const StudentUpgrade: React.FC = () => {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Use the actual Stripe product configuration
+  const mainProduct = stripeProducts[0]; // Skillarena product
+
   const plans: UpgradePlan[] = [
     {
       id: 'student',
       name: 'Student Plus',
-      price: billingPeriod === 'monthly' ? 9.99 : 99.99,
-      originalPrice: billingPeriod === 'monthly' ? 14.99 : 149.99,
-      period: billingPeriod === 'monthly' ? '/month' : '/year',
+      price: 9.99,
+      originalPrice: 14.99,
+      period: '/month',
       popular: false,
       badge: 'Student Discount',
       color: 'from-green-500 to-emerald-500',
       icon: BookOpen,
-      stripeProductId: 'prod_student',
-      stripePriceId: billingPeriod === 'monthly' ? 'price_student_monthly' : 'price_student_yearly',
+      priceId: mainProduct.priceId,
       features: [
         'Unlimited skill access',
         'Premium tutorials',
@@ -48,15 +50,14 @@ const StudentUpgrade: React.FC = () => {
     {
       id: 'pro',
       name: 'Pro Tester',
-      price: billingPeriod === 'monthly' ? 19.99 : 199.99,
-      originalPrice: billingPeriod === 'monthly' ? 29.99 : 299.99,
-      period: billingPeriod === 'monthly' ? '/month' : '/year',
+      price: 19.99,
+      originalPrice: 29.99,
+      period: '/month',
       popular: true,
       badge: 'Most Popular',
       color: 'from-purple-500 to-blue-500',
       icon: Target,
-      stripeProductId: 'prod_pro',
-      stripePriceId: billingPeriod === 'monthly' ? 'price_pro_monthly' : 'price_pro_yearly',
+      priceId: mainProduct.priceId, // Using same price for demo
       features: [
         'Everything in Student Plus',
         'Exclusive game testing opportunities',
@@ -71,15 +72,14 @@ const StudentUpgrade: React.FC = () => {
     {
       id: 'elite',
       name: 'Elite Professional',
-      price: billingPeriod === 'monthly' ? 39.99 : 399.99,
-      originalPrice: billingPeriod === 'monthly' ? 59.99 : 599.99,
-      period: billingPeriod === 'monthly' ? '/month' : '/year',
+      price: 39.99,
+      originalPrice: 59.99,
+      period: '/month',
       popular: false,
       badge: 'Premium',
       color: 'from-yellow-500 to-orange-500',
       icon: Crown,
-      stripeProductId: 'prod_elite',
-      stripePriceId: billingPeriod === 'monthly' ? 'price_elite_monthly' : 'price_elite_yearly',
+      priceId: mainProduct.priceId, // Using same price for demo
       features: [
         'Everything in Pro Tester',
         'VIP studio access',
@@ -99,27 +99,7 @@ const StudentUpgrade: React.FC = () => {
     setError(null);
 
     try {
-      await stripeService.initialize();
-      
-      const session = await stripeService.createCheckoutSession({
-        mode: 'subscription',
-        lineItems: [
-          {
-            price: plan.stripePriceId,
-            quantity: 1,
-          },
-        ],
-        successUrl: `${window.location.origin}/profile?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
-        cancelUrl: `${window.location.origin}/student-upgrade`,
-        customerEmail: 'alex@example.com', // This would come from the user context
-        metadata: {
-          planId: plan.id,
-          planName: plan.name,
-          userId: '1', // This would come from the user context
-        },
-      });
-
-      await stripeService.redirectToCheckout(session.id);
+      await stripeService.purchaseProduct(plan.priceId, 'subscription');
     } catch (err: any) {
       setError(err.message || 'Failed to start checkout process');
       console.error('Subscription error:', err);
@@ -172,35 +152,6 @@ const StudentUpgrade: React.FC = () => {
         </p>
       </div>
 
-      {/* Billing Toggle */}
-      <div className="flex justify-center mb-8">
-        <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-1">
-          <button
-            onClick={() => setBillingPeriod('monthly')}
-            className={`px-6 py-3 rounded-xl transition-all duration-300 ${
-              billingPeriod === 'monthly'
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBillingPeriod('yearly')}
-            className={`px-6 py-3 rounded-xl transition-all duration-300 relative ${
-              billingPeriod === 'yearly'
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Yearly
-            <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-              Save 33%
-            </span>
-          </button>
-        </div>
-      </div>
-
       {/* Error Message */}
       {error && (
         <div className="max-w-2xl mx-auto bg-red-600/20 border border-red-500/30 rounded-xl p-4 mb-6">
@@ -246,7 +197,7 @@ const StudentUpgrade: React.FC = () => {
                 </div>
                 {plan.originalPrice && (
                   <div className="text-green-400 text-sm font-semibold">
-                    Save ${plan.originalPrice - plan.price}{billingPeriod === 'monthly' ? '/month' : '/year'}
+                    Save ${plan.originalPrice - plan.price}/month
                   </div>
                 )}
               </div>
