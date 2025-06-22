@@ -16,6 +16,7 @@ import Calendar from './components/Calendar';
 import AuthPage from './components/AuthPage';
 import SuccessPage from './components/SuccessPage';
 import AIAssistant from './components/AIAssistant';
+import DemoShowcase from './components/DemoShowcase';
 import { supabaseService, type SupabaseUser } from './services/supabase';
 
 interface User {
@@ -32,12 +33,29 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   // Check for success page parameters
   const urlParams = new URLSearchParams(window.location.search);
   const sessionId = urlParams.get('session_id');
   const planId = urlParams.get('plan_id');
   const isSuccessPage = sessionId && planId;
+
+  // Demo mode activation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1' || (e.ctrlKey && e.key === 'd')) {
+        e.preventDefault();
+        setIsDemoMode(!isDemoMode);
+      }
+      if (e.key === 'Escape' && isDemoMode) {
+        setIsDemoMode(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDemoMode]);
 
   useEffect(() => {
     // Check for existing session
@@ -88,6 +106,7 @@ export default function App() {
       await supabaseService.signOut();
       setUser(null);
       setActiveTab('dashboard');
+      setIsDemoMode(false);
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -97,6 +116,12 @@ export default function App() {
     // Clear URL parameters and redirect to dashboard
     window.history.replaceState({}, document.title, window.location.pathname);
     setActiveTab('dashboard');
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Smooth scroll to top when changing tabs
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const renderContent = () => {
@@ -112,7 +137,7 @@ export default function App() {
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onTabChange={setActiveTab} />;
+        return <Dashboard onTabChange={handleTabChange} />;
       case 'skills':
         return <Skills />;
       case 'tutorials':
@@ -138,7 +163,7 @@ export default function App() {
       case 'student-upgrade':
         return <StudentUpgrade />;
       default:
-        return <Dashboard onTabChange={setActiveTab} />;
+        return <Dashboard onTabChange={handleTabChange} />;
     }
   };
 
@@ -148,6 +173,7 @@ export default function App() {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading SkillArena...</p>
+          <p className="text-gray-400 text-sm mt-2">Press F1 for demo mode</p>
         </div>
       </div>
     );
@@ -177,7 +203,7 @@ export default function App() {
       <div className="relative z-10">
         <Navigation 
           activeTab={activeTab} 
-          onTabChange={setActiveTab} 
+          onTabChange={handleTabChange} 
           user={user}
           onAIToggle={() => setIsAIOpen(!isAIOpen)}
         />
@@ -189,12 +215,27 @@ export default function App() {
       {/* AI Assistant */}
       <AIAssistant isOpen={isAIOpen} onToggle={() => setIsAIOpen(!isAIOpen)} />
 
+      {/* Demo Showcase Overlay */}
+      {isDemoMode && (
+        <DemoShowcase
+          onNavigate={handleTabChange}
+          currentTab={activeTab}
+        />
+      )}
+
+      {/* Demo Mode Activation Hint */}
+      {!isDemoMode && (
+        <div className="fixed bottom-6 left-6 z-30 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-3 text-gray-300 text-xs opacity-75 hover:opacity-100 transition-opacity">
+          Press <kbd className="bg-purple-600 text-white px-2 py-1 rounded text-xs">F1</kbd> for demo mode
+        </div>
+      )}
+
       {/* Bolt.new Badge */}
       <a
         href="https://bolt.new/"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 z-40 group hover:scale-110 transition-all duration-300"
+        className="fixed bottom-6 right-6 z-40 group hover:scale-110 transition-all duration-300"
         aria-label="Built with Bolt.new"
       >
         <div className="bg-white rounded-full p-3 shadow-2xl hover:shadow-white/20 transition-all duration-300 flex items-center space-x-2">
