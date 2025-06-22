@@ -16,6 +16,7 @@ export interface SupabaseUser {
     full_name?: string;
     avatar_url?: string;
   };
+  email_confirmed_at?: string;
 }
 
 export interface UserSubscription {
@@ -32,73 +33,150 @@ export interface UserSubscription {
 
 export class SupabaseService {
   async signUp(email: string, password: string, fullName?: string) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
         },
-      },
-    });
+      });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('Signup error:', error);
+        throw new Error(this.getReadableErrorMessage(error.message));
+      }
+      
+      return data;
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      throw error;
+    }
   }
 
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('Signin error:', error);
+        throw new Error(this.getReadableErrorMessage(error.message));
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('Signin error:', error);
+      throw error;
+    }
   }
 
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Signout error:', error);
+        throw error;
+      }
+    } catch (error: any) {
+      console.error('Signout error:', error);
+      throw error;
+    }
   }
 
   async getCurrentUser(): Promise<SupabaseUser | null> {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return user as SupabaseUser | null;
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Get user error:', error);
+        return null;
+      }
+      return user as SupabaseUser | null;
+    } catch (error: any) {
+      console.error('Get user error:', error);
+      return null;
+    }
+  }
+
+  async getSession() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Get session error:', error);
+        return null;
+      }
+      return session;
+    } catch (error: any) {
+      console.error('Get session error:', error);
+      return null;
+    }
   }
 
   async getUserSubscription(): Promise<UserSubscription | null> {
-    const { data, error } = await supabase
-      .from('stripe_user_subscriptions')
-      .select('*')
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('stripe_user_subscriptions')
+        .select('*')
+        .maybeSingle();
 
-    if (error) {
+      if (error) {
+        console.error('Error fetching user subscription:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error: any) {
       console.error('Error fetching user subscription:', error);
       return null;
     }
-
-    return data;
   }
 
   async getUserOrders() {
-    const { data, error } = await supabase
-      .from('stripe_user_orders')
-      .select('*')
-      .order('order_date', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('stripe_user_orders')
+        .select('*')
+        .order('order_date', { ascending: false });
 
-    if (error) {
+      if (error) {
+        console.error('Error fetching user orders:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error: any) {
       console.error('Error fetching user orders:', error);
       return [];
     }
-
-    return data || [];
   }
 
   onAuthStateChange(callback: (user: SupabaseUser | null) => void) {
     return supabase.auth.onAuthStateChange((event, session) => {
       callback(session?.user as SupabaseUser | null);
     });
+  }
+
+  private getReadableErrorMessage(errorMessage: string): string {
+    switch (errorMessage) {
+      case 'Invalid login credentials':
+        return 'Invalid email or password. Please check your credentials and try again.';
+      case 'Email not confirmed':
+        return 'Please check your email and click the confirmation link before signing in.';
+      case 'User already registered':
+        return 'An account with this email already exists. Try signing in instead.';
+      case 'Password should be at least 6 characters':
+        return 'Password must be at least 6 characters long.';
+      case 'Invalid email':
+        return 'Please enter a valid email address.';
+      case 'Signup is disabled':
+        return 'Account registration is currently disabled. Please contact support.';
+      default:
+        return errorMessage || 'An unexpected error occurred. Please try again.';
+    }
   }
 }
 

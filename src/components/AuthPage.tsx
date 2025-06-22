@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Star, Gamepad2, Trophy, Target, Timer, Loader } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Star, Gamepad2, Trophy, Target, Timer, Loader, AlertCircle } from 'lucide-react';
 import { supabaseService } from '../services/supabase';
 
 interface AuthPageProps {
@@ -32,17 +32,74 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         localStorage.removeItem('skillArenaTrialSession');
       }
     }
+
+    // Check for existing session
+    checkExistingSession();
   }, []);
+
+  const checkExistingSession = async () => {
+    try {
+      const session = await supabaseService.getSession();
+      if (session?.user) {
+        onLogin({
+          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || ''
+        });
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+    }
+  };
+
+  const validateForm = () => {
+    if (!isLogin) {
+      if (!formData.name.trim()) {
+        setError('Please enter your full name');
+        return false;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        return false;
+      }
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters long');
+        return false;
+      }
+    }
+    
+    if (!formData.email.trim()) {
+      setError('Please enter your email address');
+      return false;
+    }
+    
+    if (!formData.password.trim()) {
+      setError('Please enter your password');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
     setMessage(null);
 
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       if (isLogin) {
-        const { user } = await supabaseService.signIn(formData.email, formData.password);
+        const { user } = await supabaseService.signIn(formData.email.trim(), formData.password);
         if (user) {
           onLogin({
             name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
@@ -50,14 +107,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           });
         }
       } else {
-        if (formData.password !== formData.confirmPassword) {
-          throw new Error('Passwords do not match');
-        }
-        
         const { user } = await supabaseService.signUp(
-          formData.email, 
+          formData.email.trim(), 
           formData.password, 
-          formData.name
+          formData.name.trim()
         );
         
         if (user) {
@@ -68,14 +121,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               email: user.email || ''
             });
           } else {
-            // Email confirmation required (though we've disabled it)
-            setMessage('Account created successfully! You can now sign in.');
+            // Email confirmation required
+            setMessage('Please check your email and click the confirmation link to complete your registration.');
             setIsLogin(true);
+            setFormData({ name: '', email: '', password: '', confirmPassword: '' });
           }
         }
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      console.error('Auth error:', err);
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -105,6 +160,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Clear error when user starts typing
+    if (error) {
+      setError(null);
+    }
   };
 
   const stats = [
@@ -212,7 +271,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                 {/* Error/Success Messages */}
                 {error && (
                   <div className="mb-6 bg-red-600/20 border border-red-500/30 rounded-xl p-4">
-                    <p className="text-red-300 text-sm">{error}</p>
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                      <p className="text-red-300 text-sm">{error}</p>
+                    </div>
                   </div>
                 )}
 
@@ -354,6 +416,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                         setIsLogin(!isLogin);
                         setError(null);
                         setMessage(null);
+                        setFormData({ name: '', email: '', password: '', confirmPassword: '' });
                       }}
                       className="ml-2 text-purple-400 hover:text-purple-300 font-semibold transition-colors"
                     >
