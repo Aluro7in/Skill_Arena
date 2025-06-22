@@ -3,12 +3,16 @@ import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import Skills from './components/Skills';
 import Tutorials from './components/Tutorials';
+import Marketplace from './components/Marketplace';
+import Certificates from './components/Certificates';
 import GameTesting from './components/GameTesting';
 import GameTestingOpportunities from './components/GameTestingOpportunities';
 import Challenges from './components/Challenges';
 import Leaderboard from './components/Leaderboard';
 import Profile from './components/Profile';
 import StudentUpgrade from './components/StudentUpgrade';
+import Community from './components/Community';
+import Calendar from './components/Calendar';
 import AuthPage from './components/AuthPage';
 import AIAssistant from './components/AIAssistant';
 
@@ -39,14 +43,22 @@ export default function App() {
         return <Skills />;
       case 'tutorials':
         return <Tutorials />;
+      case 'marketplace':
+        return <Marketplace />;
+      case 'certificates':
+        return <Certificates />;
       case 'game-testing':
         return <GameTesting />;
       case 'game-testing-opportunities':
         return <GameTestingOpportunities />;
       case 'challenges':
         return <Challenges />;
+      case 'community':
+        return <Community />;
+      case 'calendar':
+        return <Calendar />;
       case 'leaderboard':
-        return <Leaderboard />;
+        return <Le aderboard />;
       case 'profile':
         return <Profile user={user} onLogout={handleLogout} />;
       case 'student-upgrade':

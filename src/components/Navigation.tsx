@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, BookOpen, Trophy, Sword, User, Star, GraduationCap, TestTube, Briefcase, Zap, Bot, LogOut } from 'lucide-react';
+import { Home, BookOpen, Trophy, Sword, User, Star, GraduationCap, TestTube, Briefcase, Zap, Bot, LogOut, ShoppingCart, Calendar, Users, Globe, Award } from 'lucide-react';
 
 interface NavigationProps {
   activeTab: string;
@@ -13,9 +13,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, user, o
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'skills', label: 'Skills', icon: BookOpen },
     { id: 'tutorials', label: 'Tutorials', icon: GraduationCap },
-    { id: 'game-testing', label: 'Game Testing', icon: TestTube },
-    { id: 'game-testing-opportunities', label: 'Opportunities', icon: Briefcase },
+    { id: 'marketplace', label: 'Marketplace', icon: ShoppingCart },
+    { id: 'game-testing', label: 'Testing', icon: TestTube },
     { id: 'challenges', label: 'Challenges', icon: Sword },
+    { id: 'certificates', label: 'Certificates', icon: Award },
+    { id: 'community', label: 'Community', icon: Users },
+    { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'student-upgrade', label: 'Upgrade', icon: Zap }
   ];
@@ -37,15 +40,15 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, user, o
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* Navigation Tabs */}
-            <div className="flex space-x-1 bg-black/30 backdrop-blur-sm rounded-2xl p-1 border border-white/10">
+            {/* Navigation Tabs - Scrollable on smaller screens */}
+            <div className="flex space-x-1 bg-black/30 backdrop-blur-sm rounded-2xl p-1 border border-white/10 overflow-x-auto max-w-2xl">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => onTabChange(tab.id)}
-                    className={`relative flex items-center space-x-2 px-3 py-2 rounded-xl transition-all duration-300 transform hover:scale-105 group ${
+                    className={`relative flex items-center space-x-2 px-3 py-2 rounded-xl transition-all duration-300 transform hover:scale-105 group whitespace-nowrap ${
                       activeTab === tab.id
                         ? 'bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white shadow-2xl shadow-purple-500/50'
                         : 'text-gray-300 hover:text-white hover:bg-white/10'

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Star, Gamepad2, Trophy, Target } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, Lock, User, Eye, EyeOff, Star, Gamepad2, Trophy, Target, Timer } from 'lucide-react';
 
 interface AuthPageProps {
   onLogin: (user: { name: string; email: string }) => void;
@@ -8,6 +8,8 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showTrial, setShowTrial] = useState(false);
+  const [trialAttempts, setTrialAttempts] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,6 +17,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Check trial session
+    const trialData = localStorage.getItem('skillArenaTrialSession');
+    if (trialData) {
+      const trial = JSON.parse(trialData);
+      if (new Date(trial.expiresAt) > new Date()) {
+        setTrialAttempts(trial.attempts);
+      } else {
+        localStorage.removeItem('skillArenaTrialSession');
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +45,25 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     }, 1500);
   };
 
+  const handleTrialAccess = () => {
+    const currentAttempts = trialAttempts + 1;
+    const trialSession = {
+      sessionId: Date.now().toString(),
+      attempts: currentAttempts,
+      maxAttempts: 3,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    };
+    
+    localStorage.setItem('skillArenaTrialSession', JSON.stringify(trialSession));
+    setTrialAttempts(currentAttempts);
+    
+    // Temporary trial user
+    onLogin({
+      name: `Trial User ${currentAttempts}`,
+      email: 'trial@skillarena.com'
+    });
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -43,6 +77,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     { icon: Target, value: '500+', label: 'Partner Studios' },
     { icon: Gamepad2, value: '10K+', label: 'Games Tested' }
   ];
+
+  const canUseTrial = trialAttempts < 3;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden flex items-center justify-center">
@@ -109,15 +145,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                   </li>
                   <li className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    <span>Exclusive game testing opportunities</span>
+                    <span>Digital marketplace for game assets</span>
                   </li>
                   <li className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-                    <span>Direct connections to game studios</span>
+                    <span>Verifiable certificates and credentials</span>
                   </li>
                   <li className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span>Professional certifications and badges</span>
+                    <span>Earn money through game testing</span>
                   </li>
                 </ul>
               </div>
@@ -136,6 +172,38 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                     {isLogin ? 'Sign in to continue your journey' : 'Start your learning adventure today'}
                   </p>
                 </div>
+
+                {/* Trial Option */}
+                {canUseTrial && (
+                  <div className="mb-6 bg-gradient-to-r from-orange-600/20 to-yellow-600/20 backdrop-blur-sm border border-orange-500/20 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <Timer className="h-5 w-5 text-orange-400" />
+                        <span className="text-orange-300 font-semibold">Try Before You Sign Up</span>
+                      </div>
+                      <span className="text-xs bg-orange-600/30 text-orange-200 px-2 py-1 rounded-full">
+                        {3 - trialAttempts} left
+                      </span>
+                    </div>
+                    <p className="text-orange-200 text-sm mb-3">
+                      Explore SkillArena with limited access. No signup required!
+                    </p>
+                    <button
+                      onClick={handleTrialAccess}
+                      className="w-full bg-gradient-to-r from-orange-600 to-yellow-600 text-white py-2 px-4 rounded-xl font-semibold hover:from-orange-700 hover:to-yellow-700 transition-all duration-200 transform hover:scale-105"
+                    >
+                      Start Free Trial
+                    </button>
+                  </div>
+                )}
+
+                {trialAttempts >= 3 && (
+                  <div className="mb-6 bg-red-600/20 backdrop-blur-sm border border-red-500/20 rounded-2xl p-4 text-center">
+                    <p className="text-red-300 text-sm">
+                      Trial limit reached. Please sign up to continue exploring SkillArena.
+                    </p>
+                  </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {!isLogin && (
