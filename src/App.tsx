@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import Skills from './components/Skills';
@@ -14,28 +14,102 @@ import StudentUpgrade from './components/StudentUpgrade';
 import Community from './components/Community';
 import Calendar from './components/Calendar';
 import AuthPage from './components/AuthPage';
+import SuccessPage from './components/SuccessPage';
 import AIAssistant from './components/AIAssistant';
+import { supabaseService, type SupabaseUser } from './services/supabase';
 
 interface User {
   name: string;
   email: string;
+  subscription?: {
+    status: string;
+    planName: string;
+  };
 }
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAIOpen, setIsAIOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check for success page parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session_id');
+  const planId = urlParams.get('plan_id');
+  const isSuccessPage = sessionId && planId;
+
+  useEffect(() => {
+    // Check for existing session
+    const checkUser = async () => {
+      try {
+        const currentUser = await supabaseService.getCurrentUser();
+        if (currentUser) {
+          const subscription = await supabaseService.getUserSubscription();
+          setUser({
+            name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+            email: currentUser.email || '',
+            subscription: subscription ? {
+              status: subscription.subscription_status,
+              planName: 'SkillArena Pro' // You can map this from price_id
+            } : undefined
+          });
+        }
+      } catch (error) {
+        console.error('Error checking user session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabaseService.onAuthStateChange((user: SupabaseUser | null) => {
+      if (user) {
+        setUser({
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          email: user.email || ''
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleLogin = (userData: User) => {
     setUser(userData);
   };
 
-  const handleLogout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    try {
+      await supabaseService.signOut();
+      setUser(null);
+      setActiveTab('dashboard');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleSuccessPageContinue = () => {
+    // Clear URL parameters and redirect to dashboard
+    window.history.replaceState({}, document.title, window.location.pathname);
     setActiveTab('dashboard');
   };
 
   const renderContent = () => {
+    if (isSuccessPage) {
+      return (
+        <SuccessPage 
+          sessionId={sessionId} 
+          planId={planId} 
+          onContinue={handleSuccessPageContinue}
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard onTabChange={setActiveTab} />;
@@ -58,7 +132,7 @@ export default function App() {
       case 'calendar':
         return <Calendar />;
       case 'leaderboard':
-        return <Le aderboard />;
+        return <Leaderboard />;
       case 'profile':
         return <Profile user={user} onLogout={handleLogout} />;
       case 'student-upgrade':
@@ -68,8 +142,23 @@ export default function App() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading SkillArena...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return <AuthPage onLogin={handleLogin} />;
+  }
+
+  if (isSuccessPage) {
+    return renderContent();
   }
 
   return (
