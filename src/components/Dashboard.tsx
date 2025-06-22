@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Flame, Target, TrendingUp, Star, Zap, GraduationCap, TestTube, Gamepad2 } from 'lucide-react';
+import { Trophy, Flame, Target, TrendingUp, Star, Zap, GraduationCap, TestTube, Gamepad2, Play, ArrowRight } from 'lucide-react';
 import { currentUser, skills, challenges, tutorials, gameTests } from '../data/mockData';
 
 interface DashboardProps {
@@ -16,6 +16,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
   const xpProgress = (currentUser.xp / 1000) * 100;
   const nextLevel = currentUser.level + 1;
   const xpToNextLevel = 1000 - currentUser.xp;
+
+  const handleTutorialClick = (tutorialId: string) => {
+    // Store the selected tutorial in sessionStorage for the Tutorials component
+    sessionStorage.setItem('selectedTutorialId', tutorialId);
+    onTabChange('tutorials');
+  };
+
+  const handleSkillClick = (skillId: string) => {
+    // Store the selected skill in sessionStorage for the Skills component
+    sessionStorage.setItem('selectedSkillId', skillId);
+    onTabChange('skills');
+  };
+
+  const handleChallengeClick = (challengeId: string) => {
+    // Store the selected challenge in sessionStorage for the Challenges component
+    sessionStorage.setItem('selectedChallengeId', challengeId);
+    onTabChange('challenges');
+  };
+
+  const handleGameTestClick = (testId: string) => {
+    // Store the selected test in sessionStorage for the GameTesting component
+    sessionStorage.setItem('selectedGameTestId', testId);
+    onTabChange('game-testing');
+  };
 
   return (
     <div className="space-y-6">
@@ -112,9 +136,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
             
             <div className="space-y-4">
               {inProgressSkills.slice(0, 3).map((skill) => (
-                <div key={skill.id} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group">
+                <div 
+                  key={skill.id} 
+                  onClick={() => handleSkillClick(skill.id)}
+                  className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group transform hover:scale-[1.02]"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white group-hover:text-purple-300 transition-colors">{skill.title}</h3>
+                    <h3 className="font-semibold text-white group-hover:text-purple-300 transition-colors flex items-center">
+                      {skill.title}
+                      <ArrowRight className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </h3>
                     <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded-full">
                       {skill.difficulty}
                     </span>
@@ -143,9 +174,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
             
             <div className="space-y-4">
               {activeTutorials.slice(0, 2).map((tutorial) => (
-                <div key={tutorial.id} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group">
+                <div 
+                  key={tutorial.id} 
+                  onClick={() => handleTutorialClick(tutorial.id)}
+                  className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group transform hover:scale-[1.02]"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors">{tutorial.title}</h3>
+                    <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors flex items-center">
+                      {tutorial.title}
+                      <Play className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </h3>
                     <span className="text-xs bg-cyan-600 text-white px-2 py-1 rounded-full">
                       {tutorial.category}
                     </span>
@@ -154,6 +192,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">{tutorial.progress}% Complete</span>
                     <span className="text-yellow-400 font-semibold">+{tutorial.xpReward} XP</span>
+                  </div>
+                  <div className="w-full bg-gray-600 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${tutorial.progress}%` }}
+                    ></div>
                   </div>
                 </div>
               ))}
@@ -172,9 +216,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
             
             <div className="space-y-4">
               {activeChallenges.slice(0, 2).map((challenge) => (
-                <div key={challenge.id} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group">
+                <div 
+                  key={challenge.id} 
+                  onClick={() => handleChallengeClick(challenge.id)}
+                  className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group transform hover:scale-[1.02]"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white group-hover:text-yellow-300 transition-colors">{challenge.title}</h3>
+                    <h3 className="font-semibold text-white group-hover:text-yellow-300 transition-colors flex items-center">
+                      {challenge.title}
+                      <Zap className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </h3>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       challenge.difficulty === 'Easy' ? 'bg-green-600 text-white' :
                       challenge.difficulty === 'Medium' ? 'bg-yellow-600 text-white' :
@@ -203,9 +254,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
             
             <div className="space-y-4">
               {activeGameTests.slice(0, 2).map((test) => (
-                <div key={test.id} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group">
+                <div 
+                  key={test.id} 
+                  onClick={() => handleGameTestClick(test.id)}
+                  className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all cursor-pointer group transform hover:scale-[1.02]"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors">{test.title}</h3>
+                    <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors flex items-center">
+                      {test.title}
+                      <Gamepad2 className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </h3>
                     <span className="text-xs bg-cyan-600 text-white px-2 py-1 rounded-full">
                       {test.gameType}
                     </span>

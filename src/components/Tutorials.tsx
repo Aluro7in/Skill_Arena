@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
-import { GraduationCap, Clock, Trophy, Star, ChevronRight, Code2, Play, Terminal, Palette, Brain, TestTube, Gamepad2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { GraduationCap, Clock, Trophy, Star, ChevronRight, Code2, Play, Terminal, Palette, Brain, TestTube, Gamepad2, CreditCard } from 'lucide-react';
 import { tutorials } from '../data/mockData';
 import { Tutorial } from '../types';
+import { stripeService } from '../services/stripe';
 
 const Tutorials: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTutorial, setSelectedTutorial] = useState<Tutorial | null>(null);
   const [activeModule, setActiveModule] = useState(0);
+
+  // Check if a tutorial was selected from the dashboard
+  useEffect(() => {
+    const selectedTutorialId = sessionStorage.getItem('selectedTutorialId');
+    if (selectedTutorialId) {
+      const tutorial = tutorials.find(t => t.id === selectedTutorialId);
+      if (tutorial) {
+        setSelectedTutorial(tutorial);
+        sessionStorage.removeItem('selectedTutorialId');
+      }
+    }
+  }, []);
 
   const categories = ['All', ...new Set(tutorials.map(tutorial => tutorial.category))];
   const filteredTutorials = selectedCategory === 'All' 
@@ -52,6 +65,21 @@ const Tutorials: React.FC = () => {
     }
   };
 
+  const handlePurchaseTutorial = async (tutorial: Tutorial) => {
+    if (!tutorial.price) return;
+
+    try {
+      await stripeService.createTutorialCheckout({
+        id: tutorial.id,
+        title: tutorial.title,
+        price: tutorial.price,
+        description: tutorial.description
+      }, 'alex@example.com'); // This would come from user context
+    } catch (error) {
+      console.error('Failed to purchase tutorial:', error);
+    }
+  };
+
   if (selectedTutorial) {
     return (
       <div className="space-y-6">
@@ -86,6 +114,13 @@ const Tutorials: React.FC = () => {
                       {selectedTutorial.type}
                     </span>
                   </div>
+                  {selectedTutorial.isPremium && selectedTutorial.price && (
+                    <div className="mt-2">
+                      <span className="inline-block bg-gold-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        Premium ${selectedTutorial.price}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -175,6 +210,24 @@ const Tutorials: React.FC = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Purchase Section for Premium Tutorials */}
+            {selectedTutorial.isPremium && selectedTutorial.price && (
+              <div className="bg-gradient-to-r from-gold-600/20 to-yellow-600/20 backdrop-blur-xl border border-gold-500/30 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4">Premium Content</h3>
+                <div className="text-center space-y-4">
+                  <div className="text-3xl font-bold text-gold-400">${selectedTutorial.price}</div>
+                  <p className="text-gray-300 text-sm">Unlock full access to this premium tutorial</p>
+                  <button 
+                    onClick={() => handlePurchaseTutorial(selectedTutorial)}
+                    className="w-full bg-gradient-to-r from-gold-600 to-yellow-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-gold-700 hover:to-yellow-700 transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+                  >
+                    <CreditCard className="h-5 w-5" />
+                    <span>Purchase Tutorial</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Tutorial Stats */}
             <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
               <h3 className="text-lg font-bold text-white mb-4">Tutorial Stats</h3>
@@ -290,6 +343,13 @@ const Tutorials: React.FC = () => {
                       {tutorial.type}
                     </span>
                   </div>
+                  {tutorial.isPremium && tutorial.price && (
+                    <div className="mt-1">
+                      <span className="px-2 py-1 rounded-full text-xs text-white bg-gold-600">
+                        ${tutorial.price}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

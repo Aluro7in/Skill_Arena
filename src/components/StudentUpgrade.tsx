@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Crown, Zap, Star, Trophy, Target, Users, BookOpen, Award, CheckCircle, X, Sparkles, TrendingUp, Shield, Headphones } from 'lucide-react';
+import { Crown, Zap, Star, Trophy, Target, Users, BookOpen, Award, CheckCircle, X, Sparkles, TrendingUp, Shield, Headphones, CreditCard, Loader } from 'lucide-react';
+import { stripeService } from '../services/stripe';
 
 interface UpgradePlan {
   id: string;
@@ -12,11 +13,15 @@ interface UpgradePlan {
   badge: string;
   color: string;
   icon: React.ComponentType<any>;
+  stripeProductId: string;
+  stripePriceId: string;
 }
 
 const StudentUpgrade: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const plans: UpgradePlan[] = [
     {
@@ -29,6 +34,8 @@ const StudentUpgrade: React.FC = () => {
       badge: 'Student Discount',
       color: 'from-green-500 to-emerald-500',
       icon: BookOpen,
+      stripeProductId: 'prod_student',
+      stripePriceId: billingPeriod === 'monthly' ? 'price_student_monthly' : 'price_student_yearly',
       features: [
         'Unlimited skill access',
         'Premium tutorials',
@@ -48,6 +55,8 @@ const StudentUpgrade: React.FC = () => {
       badge: 'Most Popular',
       color: 'from-purple-500 to-blue-500',
       icon: Target,
+      stripeProductId: 'prod_pro',
+      stripePriceId: billingPeriod === 'monthly' ? 'price_pro_monthly' : 'price_pro_yearly',
       features: [
         'Everything in Student Plus',
         'Exclusive game testing opportunities',
@@ -69,6 +78,8 @@ const StudentUpgrade: React.FC = () => {
       badge: 'Premium',
       color: 'from-yellow-500 to-orange-500',
       icon: Crown,
+      stripeProductId: 'prod_elite',
+      stripePriceId: billingPeriod === 'monthly' ? 'price_elite_monthly' : 'price_elite_yearly',
       features: [
         'Everything in Pro Tester',
         'VIP studio access',
@@ -82,6 +93,40 @@ const StudentUpgrade: React.FC = () => {
       ]
     }
   ];
+
+  const handleSubscription = async (plan: UpgradePlan) => {
+    setLoading(plan.id);
+    setError(null);
+
+    try {
+      await stripeService.initialize();
+      
+      const session = await stripeService.createCheckoutSession({
+        mode: 'subscription',
+        lineItems: [
+          {
+            price: plan.stripePriceId,
+            quantity: 1,
+          },
+        ],
+        successUrl: `${window.location.origin}/profile?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
+        cancelUrl: `${window.location.origin}/student-upgrade`,
+        customerEmail: 'alex@example.com', // This would come from the user context
+        metadata: {
+          planId: plan.id,
+          planName: plan.name,
+          userId: '1', // This would come from the user context
+        },
+      });
+
+      await stripeService.redirectToCheckout(session.id);
+    } catch (err: any) {
+      setError(err.message || 'Failed to start checkout process');
+      console.error('Subscription error:', err);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const achievements = [
     { icon: Trophy, title: 'Top 1% of Testers', description: 'Join the elite testing community' },
@@ -156,10 +201,22 @@ const StudentUpgrade: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="max-w-2xl mx-auto bg-red-600/20 border border-red-500/30 rounded-xl p-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <X className="h-5 w-5 text-red-400" />
+            <span className="text-red-300">{error}</span>
+          </div>
+        </div>
+      )}
+
       {/* Pricing Plans */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {plans.map((plan) => {
           const Icon = plan.icon;
+          const isLoading = loading === plan.id;
+          
           return (
             <div
               key={plan.id}
@@ -204,18 +261,58 @@ const StudentUpgrade: React.FC = () => {
               </ul>
 
               <button
-                onClick={() => setSelectedPlan(plan.id)}
-                className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 ${
+                onClick={() => handleSubscription(plan)}
+                disabled={isLoading}
+                className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 ${
                   plan.popular
                     ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-2xl hover:shadow-purple-500/50'
                     : 'bg-black/30 backdrop-blur-sm border border-white/10 text-white hover:bg-black/50'
                 }`}
               >
-                {selectedPlan === plan.id ? 'Selected' : 'Choose Plan'}
+                {isLoading ? (
+                  <>
+                    <Loader className="h-5 w-5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5" />
+                    <span>Subscribe Now</span>
+                  </>
+                )}
               </button>
+
+              <div className="mt-4 text-center">
+                <p className="text-xs text-gray-400">
+                  Secure payment powered by Stripe
+                </p>
+              </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Payment Security */}
+      <div className="bg-gradient-to-r from-green-600/10 via-blue-600/10 to-purple-600/10 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-center">
+        <Shield className="h-12 w-12 mx-auto mb-4 text-green-400" />
+        <h3 className="text-xl font-bold text-white mb-4">Secure & Safe Payments</h3>
+        <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
+          Your payment information is processed securely through Stripe. We never store your credit card details on our servers.
+        </p>
+        <div className="flex justify-center items-center space-x-8 text-gray-400">
+          <div className="flex items-center space-x-2">
+            <Shield className="h-5 w-5" />
+            <span>SSL Encrypted</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <CreditCard className="h-5 w-5" />
+            <span>Stripe Secured</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="h-5 w-5" />
+            <span>30-Day Guarantee</span>
+          </div>
+        </div>
       </div>
 
       {/* Achievement Badges */}
@@ -308,7 +405,7 @@ const StudentUpgrade: React.FC = () => {
           {[
             {
               question: 'Can I switch plans anytime?',
-              answer: 'Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.'
+              answer: 'Yes, you can upgrade or downgrade your plan at any time through your account settings. Changes take effect immediately.'
             },
             {
               question: 'Is there a student discount?',
@@ -316,11 +413,19 @@ const StudentUpgrade: React.FC = () => {
             },
             {
               question: 'What if I\'m not satisfied?',
-              answer: 'We offer a 30-day money-back guarantee on all premium plans.'
+              answer: 'We offer a 30-day money-back guarantee on all premium plans. Contact support for a full refund.'
             },
             {
               question: 'Do I keep my progress if I cancel?',
-              answer: 'Yes, your learning progress and completed courses remain in your account forever.'
+              answer: 'Yes, your learning progress and completed courses remain in your account forever, even after cancellation.'
+            },
+            {
+              question: 'How secure are the payments?',
+              answer: 'All payments are processed securely through Stripe with industry-standard encryption. We never store your payment information.'
+            },
+            {
+              question: 'Can I pause my subscription?',
+              answer: 'Yes, you can pause your subscription for up to 3 months through the customer portal without losing your benefits.'
             }
           ].map((faq, index) => (
             <div key={index} className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-white/10">
@@ -339,11 +444,16 @@ const StudentUpgrade: React.FC = () => {
           Join thousands of students who have already launched successful careers in game testing and development.
         </p>
         <div className="flex justify-center space-x-4">
-          <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all transform hover:scale-105">
-            Start Free Trial
+          <button 
+            onClick={() => handleSubscription(plans[1])} // Pro plan
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all transform hover:scale-105 flex items-center space-x-2"
+          >
+            <CreditCard className="h-5 w-5" />
+            <span>Start Pro Plan</span>
           </button>
-          <button className="bg-black/30 backdrop-blur-sm border border-white/10 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black/50 transition-all">
-            Contact Sales
+          <button className="bg-black/30 backdrop-blur-sm border border-white/10 text-white px-8 py-4 rounded-2xl font-bold hover:bg-black/50 transition-all flex items-center space-x-2">
+            <Headphones className="h-5 w-5" />
+            <span>Contact Sales</span>
           </button>
         </div>
       </div>
