@@ -92,12 +92,22 @@ export class SupabaseService {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) {
-        console.error('Get user error:', error);
+        // Check if this is a session-related error (expected for unauthenticated users)
+        if (this.isSessionError(error.message)) {
+          console.debug('No authenticated user session found');
+        } else {
+          console.error('Get user error:', error);
+        }
         return null;
       }
       return user as SupabaseUser | null;
     } catch (error: any) {
-      console.error('Get user error:', error);
+      // Check if this is a session-related error (expected for unauthenticated users)
+      if (this.isSessionError(error.message)) {
+        console.debug('No authenticated user session found');
+      } else {
+        console.error('Get user error:', error);
+      }
       return null;
     }
   }
@@ -106,12 +116,22 @@ export class SupabaseService {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        console.error('Get session error:', error);
+        // Check if this is a session-related error (expected for unauthenticated users)
+        if (this.isSessionError(error.message)) {
+          console.debug('No active session found');
+        } else {
+          console.error('Get session error:', error);
+        }
         return null;
       }
       return session;
     } catch (error: any) {
-      console.error('Get session error:', error);
+      // Check if this is a session-related error (expected for unauthenticated users)
+      if (this.isSessionError(error.message)) {
+        console.debug('No active session found');
+      } else {
+        console.error('Get session error:', error);
+      }
       return null;
     }
   }
@@ -158,6 +178,21 @@ export class SupabaseService {
     return supabase.auth.onAuthStateChange((event, session) => {
       callback(session?.user as SupabaseUser | null);
     });
+  }
+
+  private isSessionError(errorMessage: string): boolean {
+    const sessionErrorMessages = [
+      'Auth session missing!',
+      'No session found',
+      'Session not found',
+      'User not found',
+      'JWT expired',
+      'Invalid JWT'
+    ];
+    
+    return sessionErrorMessages.some(msg => 
+      errorMessage && errorMessage.toLowerCase().includes(msg.toLowerCase())
+    );
   }
 
   private getReadableErrorMessage(errorMessage: string): string {
