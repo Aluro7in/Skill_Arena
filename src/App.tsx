@@ -223,24 +223,26 @@ export default function App() {
         />
       )}
 
-      {/* Demo Mode Activation Hint */}
+      {/* Demo Mode Activation Hint - Bottom Left */}
       {!isDemoMode && (
-        <div className="fixed bottom-6 left-6 z-30 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-3 text-gray-300 text-xs opacity-75 hover:opacity-100 transition-opacity">
-          Press <kbd className="bg-purple-600 text-white px-2 py-1 rounded text-xs">F1</kbd> for demo mode
+        <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-30 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-2 sm:p-3 text-gray-300 text-xs opacity-75 hover:opacity-100 transition-opacity">
+          Press <kbd className="bg-purple-600 text-white px-1 sm:px-2 py-1 rounded text-xs">F1</kbd> for demo mode
         </div>
       )}
 
-      {/* Bolt.new Badge */}
+      {/* Enhanced Bolt.new Badge - Positioned Above AI Assistant */}
       <a
         href="https://bolt.new/"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-40 group hover:scale-110 transition-all duration-300"
-        aria-label="Built with Bolt.new"
+        className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 z-40 group transform transition-all duration-300 ease-in-out hover:scale-110 focus:scale-110 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-transparent rounded-full"
+        aria-label="Built with Bolt.new - Open Bolt.new in new tab"
+        title="Built with Bolt.new"
       >
-        <div className="bg-white rounded-full p-3 shadow-2xl hover:shadow-white/20 transition-all duration-300 flex items-center space-x-2">
-          {/* Bolt.new Logo */}
-          <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
+        {/* Main Badge Container */}
+        <div className="bg-white rounded-full p-2 sm:p-3 shadow-2xl hover:shadow-orange-500/30 transition-all duration-300 flex items-center space-x-1 sm:space-x-2 min-w-[48px] min-h-[48px] border border-gray-200">
+          {/* Bolt.new Logo with Lightning Icon */}
+          <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -248,19 +250,34 @@ export default function App() {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-4 h-4 text-white"
+              className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+              aria-hidden="true"
             >
               <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2" />
             </svg>
           </div>
-          <span className="text-gray-800 font-bold text-sm pr-1 hidden group-hover:block transition-all duration-300">
+          
+          {/* Text Label - Hidden on mobile, shown on hover on desktop */}
+          <span className="text-gray-800 font-bold text-xs sm:text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 max-w-0 group-hover:max-w-[80px] overflow-hidden transition-all duration-300 ease-in-out hidden sm:inline-block">
             Bolt.new
           </span>
         </div>
-        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          Built with Bolt.new
+
+        {/* Enhanced Tooltip */}
+        <div className="absolute -top-12 sm:-top-14 left-1/2 transform -translate-x-1/2 bg-gray-900/95 backdrop-blur-sm text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none shadow-lg border border-gray-700">
+          <span className="font-medium">Built with Bolt.new</span>
+          {/* Tooltip Arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900/95"></div>
         </div>
+
+        {/* Subtle Glow Effect */}
+        <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-gradient-to-r from-orange-400 to-orange-600 blur-md -z-10"></div>
       </a>
+
+      {/* Accessible Screen Reader Text */}
+      <div className="sr-only">
+        This project was built using Bolt.new, an AI-powered web development platform.
+      </div>
     </div>
   );
 }
