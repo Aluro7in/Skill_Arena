@@ -11,12 +11,32 @@ export interface StripeProduct {
 
 export const stripeProducts: StripeProduct[] = [
   {
-    id: 'prod_SXzxN1CxJ3RDip',
+    id: 'premium-monthly',
     priceId: 'price_1RctxSRtl07aE8XKVTIjMkyp',
-    name: 'Skillarena',
-    description: 'AI-powered gamified learning & game-testing platform',
+    name: 'Premium Individual',
+    description: 'Advanced learning with unlimited projects and premium content',
     mode: 'subscription',
-    price: 9.99,
+    price: 14.99,
+    currency: 'usd',
+    interval: 'month'
+  },
+  {
+    id: 'premium-yearly',
+    priceId: 'price_1RctxSRtl07aE8XKVTIjMkyp',
+    name: 'Premium Individual (Annual)',
+    description: 'Advanced learning with unlimited projects and premium content - Save 17%',
+    mode: 'subscription',
+    price: 149.99,
+    currency: 'usd',
+    interval: 'year'
+  },
+  {
+    id: 'teams',
+    priceId: 'price_1RctxSRtl07aE8XKVTIjMkyp',
+    name: 'Teams',
+    description: 'Collaborative workspace with advanced team features',
+    mode: 'subscription',
+    price: 39.99,
     currency: 'usd',
     interval: 'month'
   }
